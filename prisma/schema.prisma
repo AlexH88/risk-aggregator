@@ -1,0 +1,39 @@
+generator client {
+    provider = "prisma-client"
+    output   = "./generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model RiskRequest {
+    id        String              @id @default(uuid())
+    inns      String[] // список ИНН в запросе
+    status    String              @default("PENDING") // PENDING | DONE | FAILED
+    totalSum  Decimal?            @db.Decimal(20, 2)
+    createdAt DateTime            @default(now())
+    updatedAt DateTime            @updatedAt
+    systems   RiskRequestSystem[]
+    innsIndex RiskInnIndex[]
+}
+
+model RiskRequestSystem {
+    id          String      @id @default(uuid())
+    requestId   String
+    request     RiskRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+    systemName  String // SYSTEM_1..SYSTEM_4
+    totalSum    Decimal     @db.Decimal(20, 2)
+    items       Json // массив { inn, sum }
+    respondedAt DateTime    @default(now())
+}
+
+// Денормализация для быстрой фильтрации по ИНН
+model RiskInnIndex {
+    id        String      @id @default(uuid())
+    requestId String
+    request   RiskRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+    inn       String
+
+    @@index([inn])
+}
